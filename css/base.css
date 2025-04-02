@@ -1,0 +1,22 @@
+:root {
+  --body-background-color: #c9e4ca;
+  --main-dark: #2B1915;
+  --object-dark: #1f4d19;
+  --object-light: #46741f;
+  --object-red: #af3030;
+  --object-border-color: #dfb16f;
+  --text-white: #c9e4ca;
+  --selected: rgba(236, 149, 0, 0.55);
+  --box-shadow-color: rgba(0, 0, 0, 0.7);
+  --border-radius: 10px;
+}
+
+/* To hide DOM until loaded */
+[v-cloak] {
+  display: none;
+}
+
+body {
+  background: var(--body-background-color);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
