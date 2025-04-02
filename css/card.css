@@ -1,0 +1,71 @@
+.card {
+  display: grid;
+  grid-template-columns: 1fr 2fr 12fr 1fr;
+  grid-template-areas:
+    "side title body footer";
+  margin: 0px 0px 10px 0px;
+}
+
+.card-title {
+  grid-area: title;
+}
+
+.card-side {
+  grid-area: side;
+  display: flex;
+}
+
+.card-body {
+  grid-area: body;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  flex-grow: 2;
+}
+
+.card-footer {
+  grid-area: footer;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  flex-shrink: 1;
+}
+
+@media (max-width: 1070px) {
+  .card {
+    grid-template-columns: .1fr 1fr 1fr;
+    grid-template-areas:
+      "side title footer"
+      "body body body";
+  }
+
+  .card-body {
+    justify-content: flex-start;
+  }
+
+  .card-footer {
+    justify-content: flex-end;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 670px) {
+  .card {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "side title"
+      "body body"
+      "footer footer";
+  }
+}
+
+/* When stuff cant fit nicely */
+@media (max-width: 475px) {
+  .card {
+    overflow: hidden;
+  }
+
+  .card-footer {
+    justify-content: center;
+  }
+}
