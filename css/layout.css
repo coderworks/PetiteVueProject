@@ -1,0 +1,46 @@
+layout {
+  display: grid;
+  grid-template-rows: 110px auto 20px;
+  grid-template-columns: 1fr 5fr;
+  grid-template-areas:
+    "head head"
+    "nav  main"
+    "nav  foot";
+  gap: 10px 10px;
+
+  @media (max-width: 740px) {
+    grid-template-rows: 54px auto 20px;
+    grid-template-columns: 1fr 4fr;
+    grid-template-areas:
+      "head main"
+      "nav  main"
+      "nav  foot";
+    gap: 4px 4px;
+  }
+}
+
+header {
+  grid-area: head;
+  z-index: 10;
+
+  @media (max-width: 740px) {
+    /* The navburger is absolute so keep this */
+    position: sticky;
+    top: 8px;
+  }
+}
+
+main {
+  grid-area: main;
+  z-index: 9;
+}
+
+sidebar {
+  grid-area: nav;
+  z-index: 8;
+}
+
+footer {
+  grid-area: foot;
+  text-align: center;
+}
