@@ -1,0 +1,200 @@
+.nav-container {
+  display: grid;
+  grid-template-columns: .5fr 8fr 4fr 2fr;
+  grid-template-areas: "logo nav filter search";
+  margin: 5px 5px 5px 5px;
+
+  & img {
+    grid-area: logo;
+    height: 84px;
+    max-height: 84px;
+    width: 110px;
+    max-width: 110px;
+    margin-left: 50px;
+    margin-right: 50px;
+    border-radius: 8px;
+    border: inset var(--main-dark);
+    user-select: none;
+  }
+
+  & section {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  & section:nth-child(2) {
+    grid-area: nav;
+  }
+
+  & section:nth-child(3) {
+    grid-area: filter;
+  }
+
+  & section:nth-child(4) {
+    grid-area: search;
+  }
+}
+
+.nav-burger {
+  display: none;
+
+  & img {
+    visibility: hidden;
+  }
+}
+
+
+/* floating search button dock */
+.nav-search {
+  position: fixed;
+  top: 8px;
+  display: flex;
+  flex-direction: row;
+}
+
+
+/* Search stays column wrapped so fix */
+@media (max-width: 1120px) {
+  .nav-container {
+    grid-template-columns: 1fr 5fr 3fr;
+
+    & img {
+      margin-left: 20px;
+      margin-right: 20px;
+    }
+  }
+}
+
+
+/* Remove logo to fit nav items */
+@media (max-width: 1050px) {
+  .nav-container {
+    grid-template-columns: 2fr 3fr 2fr;
+    grid-template-areas:
+      "nav nav nav"
+      "filter filter search";
+
+    & img {
+      display: none;
+    }
+  }
+}
+
+/* Turn to mobile view settings when < max-width */
+@media (max-width: 740px) {
+  .nav-burger {
+    display: unset;
+  }
+
+  .nav-toggle {
+    position: absolute;
+    display: block;
+    top: 15px;
+    left: 30px;
+    width: 30px;
+    user-select: none;
+
+    & span {
+      display: block;
+      width: 33px;
+      height: 4px;
+      /* Space beween hamburder bars */
+      margin-bottom: 5px;
+      position: relative;
+      background: var(--text-white);
+      border-radius: 3px;
+      z-index: 99;
+      transform-origin: 4px 0px;
+      transition: transform 0.5s ease-in-out;
+
+      & :first-child {
+        transform-origin: 0% 0%;
+      }
+
+      & :nth-last-child(2) {
+        transform-origin: 0% 100%;
+      }
+    }
+
+    & input[type='checkbox'] {
+      width: 30px;
+      height: 30px;
+      position: absolute;
+      top: -6px;
+      left: -3px;
+      cursor: pointer;
+      /* Hide this */
+      opacity: 0;
+      z-index: 100;
+    }
+
+    /* Transform hamburger slices in a crossmark */
+    & input:checked~span {
+      transform: rotate(45deg);
+    }
+
+    /* But let's hide the middle one */
+    & input:checked~span:nth-last-child(3) {
+      opacity: 0;
+      transform: rotate(0deg) scale(0.2, 0.2);
+    }
+
+    /* The last one should go the other direction */
+    & input:checked~span:nth-last-child(2) {
+      transform: rotate(-45deg) translate(-2px, -2px);
+    }
+
+    /* And let's slide it in from the left */
+    & input:checked~.nav-container {
+      transform: none;
+    }
+  }
+
+  .nav-container {
+    position: absolute;
+    display: block;
+    margin: -65px 0 0 -50px;
+    padding: 12px;
+    /* Space for crossmark*/
+    padding-top: 70px;
+    transform-origin: 0% 0%;
+    transform: translate(-100%, 0);
+    transition: transform 0.5s ease-in-out;
+    background: var(--main-dark);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--box-shadow-color);
+
+    & img {
+      display: block;
+      visibility: visible;
+      height: 70px;
+      max-height: 70px;
+      width: 90px;
+      max-width: 90px;
+      margin-top: -40px;
+      margin-left: 140px;
+      margin-right: 4px;
+      user-select: none;
+    }
+
+    & section {
+      display: flex;
+      flex-direction: column;
+      flex-wrap: wrap;
+      margin-top: 15px;
+      align-items: center;
+    }
+
+    & section:nth-child(4) {
+      display: flex;
+      flex-direction: row;
+    }
+  }
+
+  .nav-search {
+    left: 78px;
+  }
+
+}
