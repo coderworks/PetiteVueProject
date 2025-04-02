@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Savegame Navigator</title>
+  <link rel="icon" type="image/x-icon" href="./images/lighthouse_icon.ico" />
+  <link rel="stylesheet" type="text/css" href="./css/base.css" />
+  <link rel="stylesheet" type="text/css" href="./css/layout.css" />
+  <link rel="stylesheet" type="text/css" href="./css/header.css" />
+  <link rel="stylesheet" type="text/css" href="./css/card.css" />
+  <link rel="stylesheet" type="text/css" href="./css/objects.css" />
+</head>
+
+<body>
+  <layout id="app" v-cloak>
+    <header class="container">
+      <!-- Default top nav -->
+      <div class="nav-container">
+
+        <!-- <img src="images/logo_0.jpeg" id="logo" /> -->
+        <c-logo></c-logo>
+
+        <section>
+          <template v-for="nBtn in navButtons">
+            <button class="object middle" :class="{ 'active': nBtn.active }" @click="toggle(nBtn.cmd)"
+              :title="'Navigate to \n' + nBtn.tag">
+              {{ nBtn.tag }}
+            </button>
+          </template>
+        </section>
+        <section>
+          <input class="object" type="text" v-model="selectedSidebarItem" title="Selected item from sidebar"
+            v-if="Object.keys(sidebarData).length > 0" />
+          <input class="object" type="text" v-model="selectedValue" title="Value that is selected"
+            v-if="viewMainTable || viewMainPlot" />
+        </section>
+        <section>
+          <template v-for="(nsBtn, key) in navSearchButtons">
+            <button class="object small" @click="search(nsBtn.cmd)" v-if="nsBtn.show"
+              :title="'Search in \n' + navButtons[key].tag">
+              {{ nsBtn.tag }}
+            </button>
+          </template>
+        </section>
+
+      </div>
+
+      <!-- Show if nav not in view -->
+      <div class="nav-search container glass" v-if="showScrollToTopIcon">
+        <template v-for="nsBtn in navSearchButtons">
+          <button class="object small" @click="search(nsBtn.cmd)" v-if="nsBtn.show">
+            {{ nsBtn.tag }}
+          </button>
+        </template>
+      </div>
+
+      <!-- Turns up when mobile size -->
+      <div class="nav-burger">
+        <div class="nav-toggle">
+          <input type="checkbox" id="nav-burger-checkbox" />
+
+          <!-- Spans show as the hamburger dashes -->
+          <span v-for="x in 3"></span>
+
+          <div class="nav-container">
+
+            <c-logo></c-logo>
+
+            <section>
+              <template v-for="nBtn in navButtons">
+                <button class="object middle" :class="{ 'active': nBtn.active }" @click="toggle(nBtn.cmd); hideNav()">
+                  {{ nBtn.tag }}
+                </button>
+              </template>
+            </section>
+            <section>
+              <input class="object" type="text" v-model="selectedSidebarItem"
+                v-if="Object.keys(sidebarData).length > 0" />
+              <input class="object" type="text" v-model="selectedValue" v-if="viewMainTable || viewMainPlot" />
+            </section>
+            <section>
+              <template v-for="nsBtn in navSearchButtons">
+                <button class="object small" @click="search(nsBtn.cmd); hideNav()" v-if="nsBtn.show">
+                  {{ nsBtn.tag }}
+                </button>
+              </template>
+            </section>
+
+          </div>
+        </div>
+      </div>
+    </header>
+    <main>
+      <div v-if="viewIntro">
+        <c-intro></c-intro>
+      </div>
+
+      <div v-if="viewSavedFile">
+        <c-saved-file :savedfile="savedFile" @set-saved-files="setSavedFiles"></c-saved-file>
+      </div>
+
+      <div v-if="viewMainTable">
+
+        <div class="card container sticky" :class="{ 'glass': showScrollToTopIcon }">
+
+          <div class="card-title">
+            <div class="object wide" :class="getConditionalClass('clan')" @click="setSortedState('clan')"
+              v-if="this.viewParameters">
+              Clans {{ getSortedState('clan') }}
+            </div>
+            <div class="object wide" :class="getConditionalClass('parameter')" @click="setSortedState('parameter')"
+              v-else>
+              Parameters {{ getSortedState('parameter') }}
+            </div>
+          </div>
+          <div class="card-side">
+          </div>
+          <div class="card-body">
+            <div class="object wide" :class="getConditionalClass('value1')" @click="setSortedState('value1')">
+              Value 1 {{ getSortedState('value1') }}
+            </div>
+            <template v-if="mainTableDatashowSortValues >= 2">
+              <div class="object wide" :class="getConditionalClass('value2')" @click="setSortedState('value2')">
+                Value 2 {{ getSortedState('value2') }}
+              </div>
+            </template>
+            <template v-if="mainTableDatashowSortValues >= 3">
+              <div class="object wide" :class="getConditionalClass('value3')" @click="setSortedState('value3')">
+                Value 3 {{ getSortedState('value3') }}
+              </div>
+            </template>
+            <template v-if="mainTableDatashowSortValues >= 4">
+              <div class="object wide" :class="getConditionalClass('value4')" @click="setSortedState('value4')">
+                Value 4 {{ getSortedState('value4') }}
+              </div>
+            </template>
+            <template v-if="mainTableDatashowSortValues >= 5">
+              <div class="object wide" :class="getConditionalClass('value5')" @click="setSortedState('value5')">
+                Value 5 {{ getSortedState('value5') }}
+              </div>
+            </template>
+          </div>
+          <div class="card-footer">
+            <div class="object small" @click="scrollToTopOfPage" v-if="showScrollToTopIcon">
+              <img class="chevron" src="images/chevron_up.png">
+            </div>
+          </div>
+
+        </div>
+
+        <template v-for="item in mainTableData">
+          <div class="card container" :id="'card'+item.fileLineIndex">
+
+            <div class="card-title">
+              <div v-if="viewParameters" class="object wide" :class="getConditionalClass('clan', item)"
+                @click="highlightValue(item, item.clan)">
+                {{ item.clan }}
+              </div>
+              <div v-else class="object wide" :class="getConditionalClass('parameter', item)"
+                @click="highlightValue(item, item.parameter)" :title="checkLength(item.parameter)">
+                {{ item.parameter }}
+              </div>
+            </div>
+            <div class="card-side">
+              <label class="object small" :class="{active: item.selected}" :for="item.fileLineIndex">
+                <input hidden type="checkbox" :checked="item.selected" :id="item.fileLineIndex"
+                  @change="item.selected = $event.target.checked">
+                ✓
+              </label>
+            </div>
+            <div class="card-body">
+              <template v-if="'value1' in item">
+                <div v-if="item.editable">
+                  <input class="object editable" type="text" v-model="item.value1" />
+                </div>
+                <div v-else class="object wide" :class="getConditionalClass('value1', item)"
+                  @click="highlightValue(item, item.value1)" :title="checkLength(item.value1)">
+                  {{ item.value1 }}
+                </div>
+              </template>
+
+              <template v-if="'value2' in item">
+                <div v-if="item.editable">
+                  <input class="object editable" type="text" v-model="item.value2" />
+                </div>
+                <div v-else class="object wide" :class="getConditionalClass('value2', item)"
+                  @click="highlightValue(item, item.value2)" :title="checkLength(item.value2)">
+                  {{ item.value2 }}
+                </div>
+              </template>
+
+              <template v-if="'value3' in item">
+                <div v-if="item.editable">
+                  <input class="object editable" type="text" v-model="item.value3" />
+                </div>
+                <div v-else class="object wide" :class="getConditionalClass('value3', item)"
+                  @click="highlightValue(item, item.value3)" :title="checkLength(item.value3)">
+                  {{ item.value3 }}
+                </div>
+              </template>
+
+              <template v-if="'value4' in item">
+                <div v-if="item.editable">
+                  <input class="object editable" type="text" v-model="item.value4" />
+                </div>
+                <div v-else class="object wide" :class="getConditionalClass('value4', item)"
+                  @click="highlightValue(item, item.value4)" :title="checkLength(item.value4)">
+                  {{ item.value4 }}
+                </div>
+              </template>
+
+              <template v-if="'value5' in item">
+                <div v-if="item.editable">
+                  <input class="object editable" type="text" v-model="item.value5" />
+                </div>
+                <div v-else class="object wide" :class="getConditionalClass('value5', item)"
+                  @click="highlightValue(item, item.value5)" :title="checkLength(item.value5)">
+                  {{ item.value5 }}
+                </div>
+              </template>
+            </div>
+            <div class="card-footer">
+              <button class="object small" @click="editRow(item)" v-if="!item.editable">✎</button>
+              <button class="object small" @click="saveRow(item)" v-else>✓</button>
+              <button class="object small delete" @click="deleteRow(item)">⨯</button>
+            </div>
+
+          </div>
+        </template>
+      </div>
+
+      <div v-if="viewMainPlot" class="container">
+        <c-chart ref="chart" :rows="filteredByClans" @set-selected-coordinate="setSelectedCoordinate"
+          @update-selected-coordinate="updateSelectedCoordinate"></c-chart>
+      </div>
+    </main>
+    <sidebar :items="sidebarData" :selected="selectedSidebarItem" @set-selected-sidebar-item="setSelectedSidebarItem">
+    </sidebar>
+    <footer>
+      <div class="container"> 🛥 ⛵ 🚢 🚣 🚤 🛶 </div>
+    </footer>
+  </layout>
+</body>
+
+<!-- <script src="https://unpkg.com/..."></script> -->
+<!-- Moved locally to remove online dependencies -->
+<script src="./js/vue.js"></script>
+<script src="./js/lodash.js"></script>
+<script src="./js/plotly.js"></script>
+<script>
+
+  const app = Vue.createApp({
+    data() {
+      return {
+        // Ingressed data
+        savedFiles: {},
+
+        // Derived objects from ingressed data
+        chartSidebarData: [],
+        clansSidebarData: [],
+        parametersSidebarData: [],
+        rows: [],
+        savedFilesSidebarData: [],
+        vehicles: [],
+        vehiclesSidebarData: [],
+
+        // Page vars
+        savedFile: {},
+        searchObject: {
+          fileLineIndex: '',
+          clan: '',
+          parameter: '',
+          vehicle: '',
+        },
+        selectedItem: [], // To highlight a row
+        selectedSidebarItem: '',
+        selectedValue: '', // To highlight a value
+        sorted: {
+          key: '',
+          state: 0,
+          arrow: '⇕', // ⇕ = 0, ⇓ = 1, ⇑ = 2
+          direction: 'desc'
+        },
+        viewChart: false,
+        viewClans: false,
+        viewParameters: false,
+        viewSavedFile: false,
+        viewVehicles: false,
+
+        // Candy
+        showScrollToTopIcon: false,
+      }
+    },
+
+    beforeMount() {
+      this.checkLocalStorage()
+    },
+
+    mounted() {
+      this.resetSorted()
+
+      // Candy
+      this.scrollToTopIconEvent()
+    },
+
+    // 'Doing something to data properties to change them'
+    methods: {
+
+      // Dataset functions (sorted when called)
+      createDataSets(data) {
+        this.rows = this.createRows(this.savedFiles)
+        this.vehicles = this.createVehicles(this.rows)
+
+        this.chartSidebarData = this.createChartSidebarData(this.rows)
+        this.clansSidebarData = this.createClansSidebarData(this.rows)
+        this.parametersSidebarData = this.createParameterSidebarData(this.rows)
+        this.savedFilesSidebarData = this.createSavedFilesSidebarData(data)
+        this.vehiclesSidebarData = this.createVehiclesSidebarData(this.vehicles)
+      },
+
+      createRows(savedFiles) {
+        return _.reduce(savedFiles, (acc, savedFile) => _.concat(acc, savedFile.clansData), [])
+      },
+
+      createVehicles(data) {
+        let start = false
+        let name = ''
+
+        return _(data).reduce((acc, row) => {
+
+          if (row.parameter === '.createandselvehiclewithname') {
+            name = row.value2
+            acc[name] = []
+            start = true
+          }
+
+          // Gather parameters
+          if (start) {
+            acc[name].push(row.fileLineIndex)
+          }
+
+          // Sample result {'name':[0,1,2,3]}
+          return acc
+        }, {})
+      },
+
+      createChartSidebarData(data) {
+        // Some clans don't have vehicles. These make great... well empty charts
+        const vehicles = _.filter(data, row => row.parameter.includes('.createandselvehiclewithname'))
+
+        return this.toNameBoolObject(this.filterByKey(vehicles, 'clan'))
+      },
+
+      createClansSidebarData(data) {
+        const uniqClans = this.filterByKey(data, 'clan')
+
+        return this.toNameBoolObject(_.values(uniqClans))
+      },
+
+      createParameterSidebarData(data) {
+        const uniqParameters = this.filterByKey(data, 'parameter')
+
+        return this.toNameBoolObject(_.values(uniqParameters))
+      },
+
+      createSavedFilesSidebarData(data) {
+        let uniqFilenames = this.filterByKey(data, 'fileName')
+
+        return this.toNameBoolObject(_.values(uniqFilenames))
+      },
+
+      createVehiclesSidebarData(data) {
+        return this.toNameBoolObject(_.keys(data))
+      },
+
+
+      // Nav functions
+      hideNav() {
+        document.getElementById('nav-burger-checkbox').checked = false
+      },
+
+      scrollToTopIconEvent() {
+        document.addEventListener('scroll', () => {
+          // Show icon if nav top out of viewport
+          this.showScrollToTopIcon = window.pageYOffset > 115
+        }, {
+          passive: true
+        })
+      },
+
+      search(view) {
+        // An alternative to a long set if statements
+        const views = [this.viewClans, this.viewParameters, this.viewVehicles, this.viewChart]
+        const couplingTable = {
+          '0+searchParameters': ['parameter', 'clan'],
+          '0+searchVehicles': ['vehicle', 'parameter'],
+          '0+searchChart': ['clan', 'vehicle'],
+
+          '1+searchClans': ['clan', 'parameter'],
+          '1+searchVehicles': ['vehicle', 'parameter'],
+          '1+searchChart': ['clan', 'vehicle'],
+
+          '2+searchClans': ['clan', 'parameter'],
+          '2+searchParameters': ['parameter', 'clan'],
+          '2+searchChart': ['clan', 'vehicle'],
+
+          '3+searchClans': ['clan', 'parameter'],
+          '3+searchParameters': ['parameter', 'clan'],
+          '3+searchVehicles': ['vehicle', 'parameter'],
+        }
+        const [sidebarItem, filteredValue] = couplingTable[_.indexOf(views, true) + '+' + view]
+        this.selectedSidebarItem = this.searchObject[sidebarItem]
+        this.selectedValue = this.searchObject[filteredValue]
+
+        // Switch the the desired view
+        this.viewChart = view === 'searchChart'
+        this.viewClans = view === 'searchClans'
+        this.viewParameters = view === 'searchParameters'
+        this.viewVehicles = view === 'searchVehicles'
+
+        // Scroll to the found value
+        this.scrollInToView()
+      },
+
+      toggle(view) {
+        // Cleanup for new view
+        this.selectedItem = {}
+        this.selectedSidebarItem = ''
+        this.resetSearchObject()
+
+        this.viewChart = view === 'viewChart'
+        this.viewClans = view === 'viewClans'
+        this.viewParameters = view === 'viewParameters'
+        this.viewSavedFile = view === 'viewSavedFile'
+        this.viewVehicles = view === 'viewVehicles'
+      },
+
+
+      // Main page table functions
+      checkLength(value) {
+        return value && value.length > 24 ? value : ''
+      },
+
+      deleteRow(item) {
+        this.rows = _.without(this.rows, item)
+      },
+
+      editRow(item) {
+        item.editable = true
+      },
+
+      getConditionalClass(key, item) {
+        // Add optional css class items to the mix
+        const highlightedColumm = this.sorted.key === key && this.sorted.state > 0
+        const highlightedRow = item && item.fileLineIndex === this.selectedItem.fileLineIndex
+        let highlightedValue = false
+
+        if (item && !_.isEmpty(this.selectedValue)) {
+          highlightedValue =
+            ((key === 'clan' && this.selectedValue === item.clan)
+              || (key === 'parameter' && this.selectedValue === item.parameter)
+              || (key === 'value1' && this.selectedValue === item.value1)
+              || (key === 'value2' && this.selectedValue === item.value2)
+              || (key === 'value3' && this.selectedValue === item.value3))
+            && highlightedRow
+        }
+
+        return {
+          'active': highlightedColumm || highlightedRow,
+          'highlight': highlightedValue
+        }
+      },
+
+      getSortedState(key) {
+        return key && key === this.sorted.key ? this.sorted.arrow : '⇕'
+      },
+
+      highlightValue(item, value) {
+        this.selectedItem = item
+        this.selectedValue = value
+      },
+
+      saveRow(item) {
+        const changedKey = _.find(_.keys(item.originalParameters), key => item[key] !== item.originalParameters[key])
+        item.edited = !_.isEmpty(changedKey)
+        item.editable = false
+      },
+
+      scrollToTopOfPage() {
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+      },
+
+      setSortedState(key) {
+        // Rotate state when clicked on
+        let state = this.sorted.state
+        state = this.sorted.key === key ? state + 1 : 1
+        state = state > 2 ? 0 : state
+
+        this.sorted = {
+          key: key,
+          state: state,
+          arrow: state === 1 ? '⇓' : state === 2 ? '⇑' : '⇕',
+          direction: state === 2 ? 'asc' : 'desc'
+        }
+      },
+
+
+      // Component return call functions
+      setSavedFiles(value) {
+        this.savedFiles[value.fileName] = value
+        localStorage.SavedFiles = JSON.stringify(this.savedFiles)
+      },
+
+      setSelectedCoordinate(coordinate) {
+        this.setSearchObject({
+          parameter: '.createandselvehiclewithname',
+          ...coordinate
+        })
+      },
+
+      setSelectedSidebarItem(item, event) {
+        this.selectedSidebarItem = item
+      },
+
+      updateSelectedCoordinate(coordinate) {
+        _.forEach(this.rows, row => {
+          if (row.fileLineIndex === coordinate.fileLineIndex) {
+            row.value1 = coordinate.x[0]
+            row.value2 = coordinate.y[0]
+            row.value3 = coordinate.z[0]
+
+            // Break if found
+            return false
+          }
+        })
+      },
+
+
+      // Helper functions
+      checkLocalStorage() {
+        // Somehow fails to work directly: js 'object' vs. vue 'reactive'
+        if (localStorage.SavedFiles) {
+          const dumpedSavedFiles = JSON.parse(localStorage.SavedFiles)
+
+          _.each(_.keys(dumpedSavedFiles), key => this.savedFiles[key] = dumpedSavedFiles[key])
+        }
+      },
+
+      filterByKey(data, keyName) {
+        return _.uniq(_.map(data, keyName))
+      },
+
+      findVehicleOfSelectedRowIndex(rowIndex) {
+        // Search in [{vehicleName: [rowIndexes]}, ...]
+        // -> of course this works... ;)
+        const vehicle = _((this.vehicles)).entries().find(vehicle => vehicle[1].includes(rowIndex))
+        return vehicle ? vehicle[0] : ''
+      },
+
+      getSavedFile(value) {
+        return this.savedFiles[value]
+      },
+
+      resetSorted() {
+        this.sorted = {
+          key: this.viewClans ? 'parameter' : this.viewParameters ? 'clan' : '',
+          state: 0,
+          arrow: '⇕',
+          direction: 'desc'
+        }
+      },
+
+      scrollInToView() {
+        // Store the index before the page reloads and the selectedItem is updated by watch:()
+        const cardIndex = 'card' + this.selectedItem.fileLineIndex
+
+        // Delay to have the page reloaded before scrolling up
+        // It looks fancy too but of course will fail when there is too much data to reload
+        // Then increase the delay time
+        setTimeout(() => {
+
+          if (this.viewClans || this.viewParameters || this.viewVehicles) {
+            let card = document.getElementById(cardIndex)
+
+            // Some items are parameters for clan itself. Not for a vehicle -> no card
+            if (card) {
+              card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
+
+          } else {
+            this.scrollToTopOfPage()
+          }
+        }, 300)
+      },
+
+      setselectedValue() {
+        this.selectedValue =
+          this.viewClans ? this.searchObject.parameter
+            : this.viewParameters ? this.searchObject.clan
+              : this.viewVehicles ? this.searchObject.clan
+                : this.viewChart ? this.searchObject.vehicle
+                  : ''
+        // savedFiles is not implemented as used here
+      },
+
+      toNameBoolObject(data) {
+        // Sample result [{'name': false}]
+        return _.reduce(data, (acc, key) => { acc[key] = false; return acc }, {})
+      },
+
+
+      // - computed: helper functions
+      filterBySelectedSidebarItem(data, tag) {
+        return _.filter(data, entry => entry[tag] === this.selectedSidebarItem)
+      },
+
+      orderSelectedBySorted(data) {
+        return this.sorted.state > 0 ? _.orderBy(data, this.sorted.key, this.sorted.direction) : data
+      },
+
+
+      // - watch: helper functions
+      resetSearchObject() {
+        // row, rowid, rowId, id. All will become 'undefined'
+        // when _.filter is used in computed. So fileLineIndex added instead
+        this.searchObject = {
+          fileLineIndex: '',
+          clan: '',
+          parameter: '',
+          vehicle: '',
+        }
+      },
+
+      setSearchObject(value) {
+        this.searchObject.fileLineIndex = value.fileLineIndex
+        this.searchObject.clan = value.clan
+        this.searchObject.parameter = value.parameter
+        this.searchObject.vehicle =
+          this.viewChart ? value.name :
+            this.viewVehicles ? value.value2 :
+              this.findVehicleOfSelectedRowIndex(value.fileLineIndex)
+      },
+
+      setSearchObjectItem(value) {
+        // Doesn't overwrite. Only adds missing
+        if (this.viewClans || this.viewChart) {
+          this.searchObject.clan = value
+
+        } else if (this.viewParameters) {
+          this.searchObject.parameter = value
+
+        } else if (this.viewVehicles) {
+          const row = _.find(this.rows, row => row.value2 === value)
+          this.setSearchObject(row)
+        }
+      },
+    },
+
+    // 'Returning a value that is calculated based on data properties that have been changed'
+    computed: {
+      filteredByClans() {
+        return this.orderSelectedBySorted(this.filterBySelectedSidebarItem(this.rows, 'clan'))
+      },
+
+      filteredByParameters() {
+        return this.orderSelectedBySorted(this.filterBySelectedSidebarItem(this.rows, 'parameter'))
+      },
+
+      filteredByVehicles() {
+        const indexes = this.selectedSidebarItem ? this.vehicles[this.selectedSidebarItem] : []
+        // Vehicles only has the index so turn to rows for more data
+        if (indexes.length) {
+          const data = _.filter(this.rows, row => indexes.includes(row.fileLineIndex))
+
+          return this.orderSelectedBySorted(data)
+        }
+
+        return []
+      },
+
+      mainTableData() {
+        return this.viewClans ? this.filteredByClans :
+          this.viewParameters ? this.filteredByParameters :
+            this.viewVehicles ? this.filteredByVehicles :
+              []
+      },
+
+      mainTableDatashowSortValues() {
+        const data = this.mainTableData
+
+        // Only show table filter keys needed -> less clutter
+        return _.some(this.filterByKey(data, 'value5')) ? 5 :
+          _.some(this.filterByKey(data, 'value4')) ? 4 :
+            _.some(this.filterByKey(data, 'value3')) ? 3 :
+              _.some(this.filterByKey(data, 'value2')) ? 2 :
+                1
+      },
+
+      navButtons() {
+        return [
+          // Give selected button the active state since '.btn.active' seems to fail?
+          { tag: 'Clans 🐛', active: this.viewClans, cmd: 'viewClans' },
+          { tag: 'Parameters 🌪', active: this.viewParameters, cmd: 'viewParameters' },
+          { tag: 'Vehicles 🚢', active: this.viewVehicles, cmd: 'viewVehicles' },
+          { tag: 'Chart 🧭', active: this.viewChart, cmd: 'viewChart' },
+          { tag: 'Files 🚣', active: this.viewSavedFile, cmd: 'viewSavedFile' },
+        ]
+      },
+
+      navSearchButtons() {
+        const searchClans = !this.viewClans && (this.searchObject.clan || this.searchObject.vehicle)
+        const searchParameters = !this.viewParameters && this.searchObject.parameter
+        const searchVehicles = !this.viewVehicles && this.searchObject.vehicle
+        const searchChart = !this.viewChart && _.keys(this.chartSidebarData).includes(this.searchObject.clan)
+
+        return [
+          { tag: '🐛', show: searchClans, cmd: 'searchClans' },
+          { tag: '🌪', show: searchParameters, cmd: 'searchParameters' },
+          { tag: '🚢', show: searchVehicles, cmd: 'searchVehicles' },
+          { tag: '🧭', show: searchChart, cmd: 'searchChart' },
+        ]
+      },
+
+      sidebarData: {
+        get() {
+          // Wasn't responsive enough otherwise
+          return this.viewChart ? this.chartSidebarData :
+            this.viewClans ? this.clansSidebarData :
+              this.viewParameters ? this.parametersSidebarData :
+                this.viewSavedFile ? this.savedFilesSidebarData :
+                  this.viewVehicles ? this.vehiclesSidebarData :
+                    []
+        },
+        cache: false
+      },
+
+      viewIntro() {
+        return !this.viewSavedFile && !this.selectedSidebarItem && !this.viewMainTable && !this.viewMainPlot && !this.rows.length
+      },
+
+      viewMainTable() {
+        return this.selectedSidebarItem && (this.viewClans || this.viewParameters || this.viewVehicles)
+      },
+
+      viewMainPlot() {
+        return this.selectedSidebarItem && this.viewChart
+      },
+    },
+
+    // 'Making something else occur (i.e, a side effect) because of a change to the data properties'
+    watch: {
+
+      // Triggered from 'c-saved-file' component => Object
+      savedFiles: {
+        handler(newValue) {
+          this.createDataSets(newValue)
+        },
+        deep: true,
+      },
+
+      // Triggered from highlightValue() => Object
+      selectedItem: {
+        handler(newValue) {
+          if (!_.isEmpty(newValue)) {
+            this.setSearchObject(newValue)
+          }
+        },
+        deep: true,
+      },
+
+      // Triggered from 'sidebar' component => String
+      selectedSidebarItem: {
+        handler(newValue) {
+          if (!_.isEmpty(newValue)) {
+            this.setSearchObjectItem(newValue)
+          }
+
+          if (this.viewSavedFile) {
+            this.savedFile = this.getSavedFile(newValue)
+          }
+
+          this.setselectedValue()
+        },
+        deep: true,
+      },
+    },
+  })
+
+  app.component('c-chart', {
+    // Component names need to be kebab-case else fail to work
+    components: ['c-chart'],
+
+    props: {
+      rows: Array
+    },
+
+    emits: ['setSelectedCoordinate', 'updateSelectedCoordinate'],
+
+    data() {
+      return {
+        created: false,
+        layout: {
+          autosize: true,
+          scene: {
+            camera: {
+              // Straightens things out but zoom is missing...
+              // eye: { x: 1, y: 0, z: 0 }, // => x front -100 back -800, z top 600 bottom 700, y left 0 right 40
+              // eye: { x: 0, y: 1, z: 0 }, // => x left -100 right -800, z top 600 bottom 700, y front 40 back 0
+              // eye: { x: 0, y: 0, z: 1 }, // => x top -100 bottom -800, z front 600 back 700, y left 40 right 0
+              // eye: { x: -1, y: 0, z: 0 }, // => x front -800 back -100, z top 600 bottom 700, y left 40 right 0
+              // eye: { x: 0, y: -1, z: 0 }, // => x left -800 right -100, z top 600 bottom 700, y front 0 back 40
+              // eye: { x: 0, y: 0, z: -1 }, // => x front -700 back -600, z top -100 bottom 800, y left 0 right 40
+              eye: { x: -1, y: .5, z: 1 },
+              // center: { x: 0, y: 0, z: 4 },
+            },
+          },
+          margin: {
+            l: 5,
+            r: 5,
+            b: 5,
+            t: 5
+          },
+          xaxis: { title: '', automargin: true },
+          yaxis: { title: '', automargin: true },
+          zaxis: { title: '', automargin: true },
+          subtitle: '',
+          legend: {
+            orientation: '',
+            yanchor: 'top',
+            y: 1.00,
+            xanchor: 'left',
+            x: 0,
+            font: {
+              color: '#ecf39e',
+              size: 17,
+              weight: 150,
+            },
+          },
+          paper_bgcolor: 'rgba(0, 0, 0, 0)',
+          hoverlabel: {
+            bgcolor: 'rgba(40,54,24,.8)',
+            font: {
+              color: '#ecf39e',
+              size: 17,
+              weight: 150,
+            },
+          },
+        },
+        loading: false,
+        selectedCoordinate: {
+          name: '',
+          x: [],
+          y: [],
+          z: [],
+        },
+        viewLabels: true,
+      }
+    },
+
+    template: `
+      <div style="display: flex; flex-direction: row; margin: 10px;">
+        <div v-if="loading" style="display: flex; flex-direction: row">
+          <div class="loader"></div>
+          <div v-if="!created">Loading chart... Please wait</div>
+        </div>
+        
+
+        <button v-if="created" class="object wide" :class="{active: viewLabels}" @click="toggleLabels">
+          {{ viewLabels ? 'Hide Text labels': 'Show Text labels' }}
+        </button>
+
+        <input class="object editable" type="text" v-model="selectedCoordinate.x[0]" v-if="selectedCoordinate.name"/>
+        <input class="object editable" type="text" v-model="selectedCoordinate.y[0]" v-if="selectedCoordinate.name"/>
+        <input class="object editable" type="text" v-model="selectedCoordinate.z[0]" v-if="selectedCoordinate.name"/>
+      </div>
+
+      <div ref="plot" name="plot"></div>
+    `,
+
+    beforeMount() {
+      this.checkWindowSize()
+    },
+
+    mounted() {
+      this.createChart()
+    },
+
+    methods: {
+      checkWindowSize() {
+        // Check max size viewport to use all space possible
+        // Plotly's 'auto' seems to not quite get this right
+        const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+        const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+
+        // Fullscreen
+        if (vw > 700) {
+          this.layout.height = vh - 250 // -header 175 ,button 44  and -footer 30
+        }
+
+        // Mobile version
+        if (vw < 700) {
+          // Legend bottom graph
+          this.layout.legend.orientation = 'h'
+          this.layout.legend.yanchor = 'bottom'
+          this.layout.legend.y = -1.04
+          this.layout.legend.xanchor = 'left'
+          this.layout.legend.x = 0
+          this.layout.height = vh - 25
+        }
+      },
+
+      combineTraces(data) {
+        // This function can create data based on analysis of data in retrospect
+
+        let tWaypoints = _.filter(data, row => {
+          return (row.name.includes('waypoint') || row.name.includes('navpoint'))
+        })
+
+        if (tWaypoints.length) {
+          let firstTWaypoint = tWaypoints.shift()
+          firstTWaypoint.textposition = 'top center'
+
+          // Remove to add later with updated x,y,z
+          data = _.without(data, firstTWaypoint)
+
+          _(tWaypoints).each(value => {
+            if (value.name.includes('waypoint')) {
+              firstTWaypoint.x.push(value.x[0])
+              firstTWaypoint.y.push(value.y[0])
+              firstTWaypoint.z.push(value.z[0])
+              firstTWaypoint.text.push(value.name)
+
+              // Remove combined item from stash
+              data = _.without(data, value)
+            }
+          })
+
+          // Connect the dots
+          firstTWaypoint.mode = 'lines+markers+text'
+          data.push(firstTWaypoint)
+        }
+
+        return data
+      },
+
+      async createChart() {
+        if (this.plotData.length) {
+
+          // Wrap with sleeps to get the loader triggered.
+          // Without it Plotly freezes entire browser until done 
+          // and the loading incicator never shows
+          this.loading = true
+
+          await this.sleep(10)
+
+          Plotly.plot(this.$refs.plot, this.plotData, this.layout)
+
+          // https://plotly.com/javascript/click-events/
+          this.$refs.plot.on('plotly_click', (event) => { this.createPlotClickEvent(event.points[0].data) })
+          this.loading = false
+          this.created = true
+        }
+      },
+
+      createCoordinate(index, clan, name, x, y, z) {
+        // https://plotly.com/javascript/reference/scatter3d/
+        return {
+          fileLineIndex: index,
+          name: name,
+          text: [name],
+          textfont: {
+            size: 17,
+            color: '#ecf39e',
+            weight: 150,
+          },
+          clan: clan,
+          x: [x],
+          y: [y],
+          z: [z],
+          mode: 'markers+text',
+          marker: {
+            line: { // Cirle around the marker
+              color: 'rgba(200,165,0,1)',
+              width: 0.5
+            },
+            size: 8,
+            symbol: 'x',
+            opacity: 0.8
+          },
+          type: 'scatter3d'
+        }
+      },
+
+      createPlotClickEvent(coordinate) {
+        this.updateMarkerSymbols(coordinate.name)
+        this.setSelectedCoordinate(coordinate)
+      },
+
+      setSelectedCoordinate(coordinate) {
+        this.selectedCoordinate = coordinate
+        this.$emit('setSelectedCoordinate', coordinate)
+      },
+
+      sleep(ms) {
+        // https://www.sitepoint.com/delay-sleep-pause-wait/
+        return new Promise(resolve => setTimeout(resolve, ms));
+      },
+
+      toggleLabels() {
+        this.viewLabels = !this.viewLabels
+      },
+
+      async updateChart() {
+        this.loading = true
+
+        await this.sleep(10)
+
+        Plotly.react(this.$refs.plot, this.plotData, this.layout)
+        this.loading = false
+      },
+
+      updateMarkerSymbols(pointName) {
+        // Plotly doesn't support different marker symbols when selected
+        // so just update all instead
+
+        // Return all markers to original
+        _.each(this.plotData, point => {
+          point.marker.size = 7
+          point.marker.symbol = 'x'
+          point.marker.opacity = 0.7
+
+          if (point.name === pointName) {
+            // Then set the selected marker
+            point.marker.size = 18
+            point.marker.symbol = 'circle'
+            point.marker.opacity = 1
+          }
+        })
+      },
+    },
+
+    computed: {
+      coordinates() {
+        let name = ''
+        let result = _.reduce(this.rows, (acc, row) => {
+
+          // Define start for gathering vehicle params
+          if (row.parameter === '.createandselvehiclewithname') {
+            name = row.value2
+          }
+
+          // Gather parameters
+          if (row.parameter === '.setposition' && name) {
+            acc.push(this.createCoordinate(
+              row.fileLineIndex,
+              row.clan,
+              name,
+              row.value1,
+              row.value2,
+              row.value3
+            ))
+
+            // Wait for the next vehicle
+            name = ''
+          }
+
+          return acc
+        }, [])
+
+        // Add candy
+        result = this.combineTraces(result)
+
+        return result
+      },
+
+      coordinatesWitoutText() {
+        return _.each(_.cloneDeep(this.coordinates), entry => { entry.text = ''; return entry })
+      },
+
+      plotData() {
+        return this.viewLabels ? this.coordinates : this.coordinatesWitoutText
+      },
+    },
+
+    watch: {
+      plotData() {
+        this.updateChart()
+      },
+
+      selectedCoordinate: {
+        handler(newValue) {
+          this.$emit('updateSelectedCoordinate', newValue)
+        },
+        deep: true,
+      },
+    },
+  })
+
+  app.component('c-intro', {
+    components: ['c-chart'],
+
+    template: `
+      <div class="container" style="padding:20px;">
+          <h3 style="margin-left: 10px;">Welcome to Savegame Navigator</h3>
+          <p>
+            This tool is created to explore savegame data of an old game named 'Project Nomads'.
+            Savegames created during gameplay are text based and have parameters to tinker around with.
+            Savegames can be loaded in this tool for navigating the data.
+            The project is created to test en further develop my front-end skills, 
+            and to translate vehicle coordinates to a graph which is fun since as a character in 
+            a game you're immersed. With data shown in the graph you can see from the outside looking in 
+            what's normally all around you.
+          </p>
+          Tool features are:
+          <ul style="list-style-type: '◦ '">
+            <li>🚣 Loading savegame file(s) for required data</li>
+            <li style="padding-left:1.6em"> Loaded files are stored in browser storage</li>
+            <li>🐛 View different clans from provided savegame</li>
+            <li>🌪 Surf through the parameters</li>
+            <li>🚢 Check out vehicle parameters</li>
+            <li>🧭 View vehicle coordinates in a chart</li>
+            <li>🖊️ Edit data</li>
+          </ul>
+          And more options could be added...
+          <p>This tool is created with: </p>
+          <ul style="list-style-type: '◦ '">
+            <li>Petite-Vue for no NPM overhead in development</li>
+            <li>Lodash for ease of object handling</li>
+            <li>Plotly which is terribly slow but easy to implement</li>
+            <li>CSS with responsiveness in mind</li>
+          </ul>
+        </div>
+    `,
+  })
+
+  app.component('c-logo', {
+    component: ['c-logo'],
+
+    data() {
+      return {
+        logo: 'images/logo_0.jpeg',
+        logos: [
+          'logo_0.jpeg',
+          'logo_1.jpeg',
+          'logo_2.jpeg',
+          'logo_3.jpeg',
+          'logo_4.jpeg',
+          'logo_5.jpeg',
+          'logo_6.jpeg',
+          'logo_7.png'
+        ],
+        timeoutDelayTime: 10000,
+      }
+    },
+
+    template: `
+      <div>
+        <img :src='logo'/>
+      </div>
+    `,
+
+    mounted() {
+      // candy
+      this.rotateLogo()
+    },
+
+    methods: {
+      rotateLogo() {
+        let index = 0
+        timer = setInterval(
+          () => {
+            this.logo = 'images/' + this.logos[index]
+            index = index >= 7 ? 0 : index + 1
+          },
+          this.timeoutDelayTime
+        )
+      },
+    },
+  })
+
+  app.component('c-saved-file', {
+    components: ['c-saved-file'],
+
+    props: {
+      savedfile: {},
+    },
+
+    emits: ['setSavedFiles'],
+
+    data() {
+      return {
+        loading: false,
+        textareaValue: '',
+      }
+    },
+
+    template: `
+      <div class="container">
+        <div style="margin:30px;">
+          <div class="loader" v-if="loading"></div>
+          <label class="object">
+            <input id="fileInput" type="file" name="file" multiple accept=".n"/>
+            Select file(s)
+          </label>
+        </div>
+      </div>
+
+      <div class="container" v-if="textareaValue">
+        <textarea class="container" style="width:96%; border: none; margin: 10px;" rows=20 :value='textareaValue'></textarea>
+      </div>
+    `,
+
+    mounted() {
+      this.fileSelectedEvent()
+    },
+
+    methods: {
+      cleanValue(value) {
+        return value.replace(/['"]+/g, '')
+      },
+
+      createCoordinate(name, x, y, z) {
+        return {
+          marker: {
+            line: { // Line around the marker
+              color: 'rgba(200,165,0,1)',
+              width: 0.5
+            },
+            opacity: 0.8,
+            size: 8,
+            symbol: 'x',
+          },
+          mode: 'markers+text',
+          name: name,
+          text: [name],
+          textfont: {
+            size: 17,
+            color: '#ecf39e',
+            weight: 150,
+          },
+          type: 'scatter3d',
+          x: [x],
+          y: [y],
+          z: [z],
+        }
+      },
+
+      createParameter(line) {
+        // Can return 1 or 6 parts
+        const [parameter, value1, value2, value3, value4, value5] = this.cleanValue(line).split(' ')
+        return {
+          parameter: parameter,
+          value1: value1,
+          value2: value2,
+          value3: value3,
+          value4: value4,
+          value5: value5,
+        }
+      },
+
+      fileSelectedEvent() {
+        document.getElementById('fileInput').addEventListener('change', this.handleFilesSelected, false)
+      },
+
+      fileToSaveGame(data, fileName) {
+        let start = false
+        let clanName = ''
+        const clansData = _.reduce(data.split('\n'), (acc, line, index) => {
+
+          // Clan starts here
+          if (line.includes('.createandselclanwithname')) {
+            clanName = this.cleanValue(line.split(' ')[1])
+            start = true
+          }
+
+          // Clan ends here
+          if (line.includes('sel ../..')) {
+            start = false
+          }
+
+          if (start && !line.includes('sel ..')) {
+            const parameter = this.createParameter(line)
+            acc.push(
+              {
+                fileName: fileName,
+                fileLineIndex: index,
+                originalLine: line,
+                originalParameters: parameter,
+                clan: clanName,
+                ...parameter,
+                selected: false,
+                editable: false,
+                edited: false,
+              }
+            )
+          }
+
+          return acc
+        }, [])
+
+        return {
+          fileName: fileName,
+          rawFileContent: data,
+          clansData: clansData,
+        }
+      },
+
+      handleFilesSelected(event) {
+        // To support multiple files when selected
+        _.each(event.target.files, file => this.readFile(file))
+      },
+
+      readFile(file) {
+        let reader = new FileReader()
+
+        // Start processing file
+        this.loading = true
+
+        reader.readAsText(file)
+        reader.onloadend = () => {
+          try {
+
+            if (this.validateFile(reader.result)) {
+              const basicSaveGameItems = this.fileToSaveGame(reader.result, file.name)
+              this.$emit('setSavedFiles', basicSaveGameItems)
+            } else {
+              alert('Unknown Pattern error: \nNot sure what this file will do...', file.name)
+            }
+
+          } catch (error) {
+
+            if (error.name.includes('QuotaExceededError')) {
+              alert('QuotaExceededError: \nThe current file seems one too much for the browser storage capacity: ' + file.name)
+            } else {
+              console.log({
+                message: error.message,
+                name: error.name
+              })
+            }
+
+          }
+        }
+        this.loading = false
+      },
+
+      validateFile(data) {
+        const lines = data.split('\n')
+
+        if (lines.length > 0) {
+          const first4Rows = _.take(lines, 4)
+          const required1 = ["# ---", "# $parser:ntclserver$ $class:nrealworld$", "# ---", '.sethandcontrol']
+          const last4Rows = _.takeRight(lines, 4)
+          const required2 = ["sel ../..", "# ---", "# Eof", ""]
+          const checks = _.reduce(required1, (acc, value, index) => {
+            acc.push(first4Rows[index].includes(required1[index]))
+            acc.push(last4Rows[index].includes(required2[index]))
+            return acc
+          }, [])
+
+          // Just have enough ok's
+          return (_.filter(checks, check => check)).length > 6
+        }
+
+        // No data or something usefull to work with
+        return false
+      },
+    },
+
+    watch: {
+      savedfile: {
+        handler(newValue) {
+          this.textareaValue = newValue.rawFileContent
+        },
+        deep: true
+      }
+    }
+  })
+
+  // 'sidebar' added to remove 'sidebar custom component' warning
+  // 'v-pre' is supposed to solve this but seems to generate an 
+  // 'Invalid String found in DOM' at times
+  app.component('sidebar', {
+    component: ['sidebar'],
+
+    props: {
+      items: Object,
+      selected: String
+    },
+
+    emits: ['setSelectedSidebarItem'],
+
+    data() {
+      return {
+        selectedItem: ''
+      }
+    },
+
+    template: `
+      <div class="container">
+
+        <template v-for="(value, key) in items">
+          <label class="object wide" :class="{'active': (key == selectedItem)}" :for="key">
+            <input hidden :id="key" type="checkbox" :checked="value" @change="selectItem(key, $event.target.checked)">
+            {{ key }}
+          </label>
+        </template>
+        
+      </div>
+    `,
+
+    methods: {
+      resetSelectedItem() {
+        _.keys(this.items, key => this.items[key] = false)
+      },
+
+      selectItem(item, event) {
+        // Keep selected sidebarbutton active
+        this.selectedItem = item
+        this.updateItems()
+
+        // Let parent component know the change
+        this.$emit('setSelectedSidebarItem', item)
+      },
+
+      updateItems() {
+        _.keys(this.items, key => this.items[key] = key === this.selectedItem)
+      },
+    },
+
+    watch: {
+      // To detect changes in parent component
+      items: {
+        handler() {
+          // Reset since Vue maintains the DOM-value and not the 'items'-value
+          this.resetSelectedItem()
+        },
+        deep: true,
+      },
+
+      selected: {
+        handler(newValue) {
+          this.selectedItem = newValue
+          this.updateItems()
+        },
+        deep: true,
+      },
+    },
+  })
+
+  app.mount('#app')
+</script>
+
+</html>
