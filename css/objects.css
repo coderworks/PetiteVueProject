@@ -1,0 +1,111 @@
+.chevron {
+  height: 23px;
+  filter: invert();
+  margin-top: 2px;
+}
+
+.container {
+  background: var(--main-dark);
+  border: .8px solid var(--object-border-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--box-shadow-color);
+  padding: 5px 5px 5px 5px;
+  color: var(--text-white);
+}
+
+.loader {
+  border: 10px solid var(--object-dark);
+  border-top: 16px solid var(--text-white);
+  border-radius: 50%;
+  margin-left: 20px;
+  margin-right: 20px;
+  width: 20px;
+  height: 20px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.object {
+  display: block;
+  min-height: 34px;
+  max-height: 34px;
+  align-content: center;
+  text-align: center;
+  font-size: 1em;
+  margin: 5px;
+  color: var(--text-white);
+  border: none;
+  background: var(--object-dark);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--box-shadow-color);
+  user-select: none;
+  transition: .2s ease;
+
+
+  &.small {
+    width: 50px;
+    height: 34px;
+    /* Increase size unicode icons  */
+    font-size: 1.4em;
+  }
+
+  &.middle {
+    width: 130px;
+    height: 34px;
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+
+  &.wide {
+    width: 210px;
+    height: 34px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-left: .5em;
+    padding-right: .5em;
+  }
+
+  &.delete:hover {
+    background: var(--object-red);
+  }
+
+  &:hover {
+    box-shadow: 0px 0px 5px 1px var(--selected);
+    background: var(--object-light);
+  }
+
+  & input[type="file"] {
+    display: none;
+  }
+}
+
+.active {
+  background: var(--object-light);
+}
+
+.highlight,
+.editable {
+  background: var(--selected);
+}
+
+.sticky {
+  position: sticky;
+  /* Needs fixed top/bottom to stay fixed */
+  top: 8px;
+  z-index: 5;
+}
+
+.glass {
+  background: rgb(43, 25, 21, .7);
+  backdrop-filter: blur(2px);
+}
